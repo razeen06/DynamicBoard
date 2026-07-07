@@ -1,0 +1,41 @@
+<section class="landing-page">
+    <div class="landing-copy">
+        <p class="eyebrow">DynamicBoard</p>
+
+        <h1>Turn messy deadlines into a focused weekly plan.</h1>
+
+        <p class="landing-description">
+            Prioritise urgent work, plan study blocks, and keep your most important tasks visible.
+        </p>
+
+        <div class="landing-quote">
+            "{{ quote }}"
+        </div>
+    </div>
+
+    <div class="landing-card">
+        <h2>Welcome back</h2>
+        <p>Sign in to access your personal workspace.</p>
+
+        {% if oauth_ready %}
+            <a href="/login" class="google-login-button">
+                <span class="google-icon">G</span>
+                Continue with Google
+            </a>
+        {% else %}
+            <p class="warning">
+                Google OAuth is not configured. Check your .env file.
+            </p>
+        {% endif %}
+
+        <div class="feature-pills">
+            <span>Smart priority scoring</span>
+            <span>Weekly timetable</span>
+            <span>Critical task focus</span>
+        </div>
+
+        <p class="privacy-note">
+            Your tasks stay inside your personal DynamicBoard account.
+        </p>
+    </div>
+</section>

@@ -1,0 +1,201 @@
+{% if selected_task %}
+    <div class="modal-backdrop">
+        <div class="task-modal">
+            <div class="modal-header">
+                <div>
+                    <h2>{{ selected_task.title }}</h2>
+                    <p>Full task details and progress controls.</p>
+                </div>
+
+                <a href="/" class="close-button">×</a>
+            </div>
+
+            {% if selected_task.days_left <= 1 and not selected_task.completed %}
+                <p class="warning">Due very soon. Stop procrastinating.</p>
+            {% endif %}
+
+            <section class="modal-info-grid">
+                <div><strong>Risk</strong><p>{{ selected_task.risk }}</p></div>
+                <div><strong>Priority</strong><p>{{ selected_task.priority }}</p></div>
+                <div><strong>Due date</strong><p>{{ selected_task.due_date }}</p></div>
+                <div><strong>Days left</strong><p>{{ selected_task.days_left }}</p></div>
+                <div><strong>Importance</strong><p>{{ selected_task.importance }}/5</p></div>
+                <div><strong>Difficulty</strong><p>{{ selected_task.difficulty }}/10</p></div>
+            </section>
+
+            <section>
+                <h3>Progress</h3>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ selected_task.progress }}%;"></div>
+                </div>
+
+                <form action="/update_progress/{{ selected_task_index }}" method="POST" class="modal-form">
+                    <div class="form-field">
+                        <label>Completion %</label>
+                        <input type="number" name="progress" min="0" max="100" value="{{ selected_task.progress }}" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label>Hours left</label>
+                        <input type="number" name="estimated_hours" min="0" step="0.5" value="{{ selected_task.estimated_hours }}" required>
+                    </div>
+
+                    <button type="submit">Add progress</button>
+                </form>
+            </section>
+
+            <section>
+                <h3>Notes / Plan</h3>
+
+                <form action="/update_notes/{{ selected_task_index }}" method="POST" class="notes-form">
+                    <label>Notes</label>
+                    <textarea name="notes" placeholder="Add notes about this task..." data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" spellcheck="false">{{ selected_task.notes }}</textarea>
+
+                    <label>Plan</label>
+                    <textarea name="plan" placeholder="Write the plan for completing this task..." data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" spellcheck="false">{{ selected_task.plan }}</textarea>
+
+                    <button type="submit">Save notes/plan</button>
+                </form>
+            </section>
+
+            <div class="button-row">
+                {% if not selected_task.completed %}
+                    <form action="/complete/{{ selected_task_index }}" method="POST">
+                        <button type="submit" class="complete-button">Mark complete</button>
+                    </form>
+                {% endif %}
+
+                <form action="/delete/{{ selected_task_index }}" method="POST">
+                    <button type="submit" class="delete-button">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% if show_timetable %}
+    <div class="modal-backdrop">
+        <div class="timetable-modal">
+            <div class="modal-header">
+                <div>
+                    <h2>Weekly Timetable</h2>
+                    <p>Default view is 07:00–20:00. It expands automatically when you schedule outside that window.</p>
+                </div>
+
+                <a href="/" class="close-button">×</a>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="calendar-corner" style="grid-column: 1; grid-row: 1;">
+                    Time
+                </div>
+
+                {% for day in days %}
+                    <div
+                        class="calendar-day-header"
+                        style="grid-column: {{ loop.index + 1 }}; grid-row: 1;"
+                    >
+                        {{ day }}
+                    </div>
+                {% endfor %}
+
+                {% for hour in timetable_hours %}
+                    {% set row_number = loop.index + 1 %}
+
+                    <div
+                        class="calendar-hour-label"
+                        style="grid-column: 1; grid-row: {{ row_number }};"
+                    >
+                        {{ hour }}
+                    </div>
+
+                    {% for day in days %}
+                        <div
+                            class="calendar-cell"
+                            style="grid-column: {{ loop.index + 1 }}; grid-row: {{ row_number }};"
+                        >
+                            <a href="/timetable/add/{{ day }}/{{ hour }}" class="add-schedule-hover">Add task</a>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+                {% for entry in schedule_entries %}
+                    <div
+                        class="calendar-entry"
+                        style="
+                            grid-column: {{ entry.grid_column }};
+                            grid-row: {{ entry.grid_row }} / span {{ entry.grid_span }};
+                        "
+                    >
+                        <strong>{{ entry.title }}</strong>
+                        <span>{{ entry.start_time }}–{{ entry.end_time }}</span>
+
+                        {% if entry.details %}
+                            <p>{{ entry.details }}</p>
+                        {% endif %}
+
+                        <form action="/delete_schedule_entry/{{ entry.id }}" method="POST">
+                            <button type="submit" class="mini-delete-button">Remove</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% if add_schedule_day %}
+    <div class="modal-backdrop">
+        <div class="task-modal schedule-add-modal">
+            <div class="modal-header">
+                <div>
+                    <h2>Add timetable task</h2>
+                    <p>{{ add_schedule_day }} at {{ add_schedule_hour }}</p>
+                </div>
+
+                <a href="/timetable" class="close-button">×</a>
+            </div>
+
+            <form action="/save_schedule_entry" method="POST" class="schedule-entry-form">
+                <input type="hidden" name="day" value="{{ add_schedule_day }}">
+
+                <div class="form-field">
+                    <label>Choose existing task</label>
+                    <div class="select-wrap">
+                        <select name="linked_task_index">
+                            <option value="">No linked task</option>
+                            {% for task in tasks %}
+                                {% if not task.completed %}
+                                    <option value="{{ loop.index0 }}">{{ task.title }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label>Or custom task name</label>
+                    <input type="text" name="custom_title" placeholder="Custom timetable task">
+                </div>
+
+                <div class="form-field">
+                    <label>Start time</label>
+                    <input type="time" name="start_time" value="{{ add_schedule_hour }}" required>
+                </div>
+
+                <div class="form-field">
+                    <label>End time</label>
+                    <input type="time" name="end_time" required>
+                </div>
+
+                <div class="form-field full-span">
+                    <label>Details</label>
+                    <textarea name="details" placeholder="What exactly will you do in this block?" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" spellcheck="false"></textarea>
+                </div>
+
+                <button type="submit">Add to timetable</button>
+            </form>
+        </div>
+    </div>
+{% endif %}

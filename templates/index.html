@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DynamicBoard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="{{ settings.theme }} zoom-{{ settings.zoom }}">
+    <main>
+        {% if not logged_in %}
+            {% include "login.html" %}
+        {% else %}
+            {% include "dashboard.html" %}
+            {% include "modals.html" %}
+        {% endif %}
+    </main>
+</body>
+</html>

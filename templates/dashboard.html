@@ -1,0 +1,192 @@
+<header class="top-header">
+    <div>
+        <h1>{{ board_title }}</h1>
+        <p>{{ quote }}</p>
+    </div>
+
+    <div class="top-controls">
+        <a href="/timetable" class="timetable-button">View Timetable</a>
+
+        <form action="/settings" method="POST" class="compact-settings-form">
+            <label>
+                Theme
+                <div class="select-wrap small-select">
+                    <select name="theme" onchange="this.form.submit()">
+                        <option value="light" {% if settings.theme == "light" %}selected{% endif %}>Light</option>
+                        <option value="dark" {% if settings.theme == "dark" %}selected{% endif %}>Dark</option>
+                    </select>
+                </div>
+            </label>
+
+            <input type="hidden" name="zoom" value="{{ settings.zoom }}">
+        </form>
+
+        <form action="/settings" method="POST" class="compact-settings-form">
+            <label>
+                Zoom
+                <div class="select-wrap small-select">
+                    <select name="zoom" onchange="this.form.submit()">
+                        <option value="small" {% if settings.zoom == "small" %}selected{% endif %}>Small</option>
+                        <option value="medium" {% if settings.zoom == "medium" %}selected{% endif %}>Medium</option>
+                        <option value="large" {% if settings.zoom == "large" %}selected{% endif %}>Large</option>
+                    </select>
+                </div>
+            </label>
+
+            <input type="hidden" name="theme" value="{{ settings.theme }}">
+        </form>
+
+        <form action="/logout" method="POST">
+            <button type="submit" class="secondary-button">Logout</button>
+        </form>
+    </div>
+</header>
+
+<section class="stats-grid stats-grid-three">
+    <div class="stat-card">
+        <h3>Total Tasks</h3>
+        <p>{{ total_tasks }}</p>
+    </div>
+
+    <div class="stat-card">
+        <h3>Critical Tasks</h3>
+        <p>{{ critical_tasks }}</p>
+    </div>
+
+    <div class="stat-card">
+        <h3>Hours Remaining</h3>
+        <p>{{ total_hours_remaining }}</p>
+    </div>
+</section>
+
+<section class="focus-section">
+    <div class="focus-header">
+        <div>
+            <h2>Today's Focus</h2>
+            <p>Critical work and scheduled sessions for today.</p>
+        </div>
+
+        <a href="/timetable" class="focus-timetable-link">View Timetable</a>
+    </div>
+
+    <div class="today-focus-grid">
+        <div>
+            <h3>Must Complete</h3>
+
+            {% if todays_focus|length == 0 %}
+                <p>No critical tasks right now. Keep it that way.</p>
+            {% endif %}
+
+            {% for task in todays_focus %}
+                <div class="focus-card">
+                    <strong>{{ task.title }}</strong>
+                    <p>
+                        Priority: {{ task.priority }} |
+                        Risk: {{ task.risk }} |
+                        Due in {{ task.days_left }} day(s) |
+                        Hours left: {{ task.estimated_hours }}
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div>
+            <h3>Today's Timetable</h3>
+
+            {% if today_timetable|length == 0 %}
+                <p>No timetable sessions today.</p>
+            {% endif %}
+
+            {% for entry in today_timetable %}
+                <div class="focus-card timetable-focus-card">
+                    <strong>{{ entry.start_time }}–{{ entry.end_time }}</strong>
+                    <p>{{ entry.title }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<form action="/add" method="POST" class="task-form">
+    <div class="form-field title-field">
+        <label>Task</label>
+        <input type="text" name="title" placeholder="Task name" required>
+    </div>
+
+    <div class="form-field">
+        <label>Importance</label>
+        <div class="select-wrap">
+            <select name="importance" required>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-field">
+        <label>Difficulty</label>
+        <div class="select-wrap">
+            <select name="difficulty" required>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-field">
+        <label>Due in days</label>
+        <input type="number" name="due_days" placeholder="e.g. 3" min="0" required>
+    </div>
+
+    <div class="form-field">
+        <label>Hours left</label>
+        <input type="number" name="estimated_hours" placeholder="Hours" min="0" step="0.5" required>
+    </div>
+
+    <div class="form-field">
+        <label>Progress</label>
+        <input type="number" name="progress" placeholder="%" min="0" max="100" required>
+    </div>
+
+    <button type="submit" class="add-task-button">Add task</button>
+</form>
+
+<section>
+    <h2>Prioritised Tasks</h2>
+
+    {% if tasks|length == 0 %}
+        <p>No tasks yet. Add one above.</p>
+    {% endif %}
+
+    <div class="task-list">
+        {% for task in tasks %}
+            <a href="/task/{{ loop.index0 }}" class="compact-task-card {% if task.completed %}completed{% endif %}">
+                <div class="compact-task-main">
+                    <strong>{{ task.title }}</strong>
+                    <span class="risk-label risk-{{ task.risk|lower }}">{{ task.risk }}</span>
+                </div>
+
+                <div class="compact-task-meta">
+                    <span>Progress: {{ task.progress }}%</span>
+                    <span>Due in: {{ task.days_left }} day(s)</span>
+                    <span>Date: {{ task.due_date }}</span>
+                </div>
+
+                <div class="progress-bar compact-progress">
+                    <div class="progress-fill" style="width: {{ task.progress }}%;"></div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+</section>
