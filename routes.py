@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 import random
 
-from constants import PRODUCTIVITY_QUOTES, DAYS, DEFAULT_START_HOUR, DEFAULT_END_HOUR
+from constants import PRODUCTIVITY_QUOTES, DEFAULT_START_HOUR, DEFAULT_END_HOUR
 from data_store import (
     default_timetable,
     default_user_data,
@@ -25,20 +25,31 @@ from task_logic import (
     time_to_minutes,
     get_timetable_hours,
     build_schedule_entries,
-    get_today_timetable_entries
+    get_today_timetable_entries,
+    get_week_days
 )
 
 oauth = OAuth()
 main_routes = Blueprint("main_routes", __name__)
 
 
+def parse_week_offset(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
 def render_dashboard(
     selected_task=None,
     selected_task_index=None,
     show_timetable=False,
-    add_schedule_day=None,
-    add_schedule_hour=None
+    add_schedule_date=None,
+    add_schedule_label=None,
+    add_schedule_hour=None,
+    week_offset=0
 ):
+    week_days, week_range_label, is_current_week = get_week_days(week_offset)
     user_key = get_current_user_key()
 
     if not user_key:
@@ -61,12 +72,16 @@ def render_dashboard(
             selected_task=None,
             selected_task_index=None,
             show_timetable=False,
-            add_schedule_day=None,
+            add_schedule_date=None,
+            add_schedule_label=None,
             add_schedule_hour=None,
             timetable=default_timetable(),
             timetable_hours=default_hours,
             schedule_entries=[],
-            days=DAYS,
+            week_offset=0,
+            week_days=[],
+            week_range_label="",
+            is_current_week=True,
             total_tasks=0,
             completed_tasks=0,
             critical_tasks=0,
@@ -100,8 +115,8 @@ def render_dashboard(
     display_name = get_current_display_name()
     first_name = display_name.split()[0] if display_name else "User"
 
-    timetable_hours = get_timetable_hours(timetable)
-    schedule_entries = build_schedule_entries(timetable, timetable_hours)
+    timetable_hours = get_timetable_hours(timetable, week_days)
+    schedule_entries = build_schedule_entries(timetable, timetable_hours, week_days)
 
     return render_template(
         "index.html",
@@ -117,16 +132,22 @@ def render_dashboard(
         selected_task=selected_task,
         selected_task_index=selected_task_index,
         show_timetable=show_timetable,
-        add_schedule_day=add_schedule_day,
+        add_schedule_date=add_schedule_date,
+        add_schedule_label=add_schedule_label,
         add_schedule_hour=add_schedule_hour,
         timetable=timetable,
         timetable_hours=timetable_hours,
         schedule_entries=schedule_entries,
-        days=DAYS,
+        week_offset=week_offset,
+        week_days=week_days,
+        week_range_label=week_range_label,
+        is_current_week=is_current_week,
         total_tasks=total_tasks,
         completed_tasks=completed_tasks,
         critical_tasks=critical_tasks,
         total_hours_remaining=round(total_hours_remaining, 1),
+        today_day=datetime.today().strftime("%A"),
+        today_date=datetime.today().strftime("%d %B %Y"),
         oauth_ready=current_app.config.get("OAUTH_READY", False)
     )
 
@@ -202,21 +223,29 @@ def view_timetable():
     if not get_current_user_key():
         return redirect("/")
 
-    return render_dashboard(show_timetable=True)
+    week_offset = parse_week_offset(request.args.get("week_offset"))
+
+    return render_dashboard(show_timetable=True, week_offset=week_offset)
 
 
-@main_routes.route("/timetable/add/<day>/<hour>")
-def add_timetable_entry(day, hour):
+@main_routes.route("/timetable/add/<date>/<hour>")
+def add_timetable_entry(date, hour):
     if not get_current_user_key():
         return redirect("/")
 
-    if day not in DAYS:
-        return redirect("/timetable")
+    week_offset = parse_week_offset(request.args.get("week_offset"))
+
+    try:
+        add_schedule_label = datetime.strptime(date, "%Y-%m-%d").strftime("%A, %d %b %Y")
+    except ValueError:
+        return redirect(f"/timetable?week_offset={week_offset}")
 
     return render_dashboard(
         show_timetable=True,
-        add_schedule_day=day,
-        add_schedule_hour=hour
+        add_schedule_date=date,
+        add_schedule_label=add_schedule_label,
+        add_schedule_hour=hour,
+        week_offset=week_offset
     )
 
 
@@ -342,18 +371,21 @@ def save_schedule_entry():
     if not user_data:
         return redirect("/")
 
-    day = request.form.get("day")
+    date = request.form.get("date")
     linked_task_index = request.form.get("linked_task_index")
     custom_title = request.form.get("custom_title", "").strip()
     details = request.form.get("details", "").strip()
     start_time = request.form.get("start_time")
     end_time = request.form.get("end_time")
+    week_offset = parse_week_offset(request.form.get("week_offset"))
 
-    if day not in DAYS:
-        return redirect("/timetable")
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return redirect(f"/timetable?week_offset={week_offset}")
 
     if not start_time or not end_time:
-        return redirect("/timetable")
+        return redirect(f"/timetable?week_offset={week_offset}")
 
     if time_to_minutes(end_time) < time_to_minutes(start_time):
         start_minutes = time_to_minutes(start_time)
@@ -384,38 +416,40 @@ def save_schedule_entry():
         "linked_task_title": linked_task_title
     }
 
-    user_data["timetable"] = normalize_timetable(user_data.get("timetable", default_timetable()))
-    user_data["timetable"][day].append(entry)
+    timetable = normalize_timetable(user_data.get("timetable", default_timetable()))
+    timetable.setdefault(date, []).append(entry)
 
-    user_data["timetable"][day] = sorted(
-        user_data["timetable"][day],
+    timetable[date] = sorted(
+        timetable[date],
         key=lambda item: item.get("start_time", "99:99")
     )
 
+    user_data["timetable"] = timetable
     save_current_user_data(user_data)
 
-    return redirect("/timetable")
+    return redirect(f"/timetable?week_offset={week_offset}")
 
 
 @main_routes.route("/delete_schedule_entry/<entry_id>", methods=["POST"])
 def delete_schedule_entry(entry_id):
     user_data = get_current_user_data()
+    week_offset = parse_week_offset(request.form.get("week_offset"))
 
     if not user_data:
         return redirect("/")
 
     timetable = normalize_timetable(user_data.get("timetable", default_timetable()))
 
-    for day in DAYS:
-        timetable[day] = [
-            entry for entry in timetable[day]
+    for date_key in timetable:
+        timetable[date_key] = [
+            entry for entry in timetable[date_key]
             if entry.get("id") != entry_id
         ]
 
     user_data["timetable"] = timetable
     save_current_user_data(user_data)
 
-    return redirect("/timetable")
+    return redirect(f"/timetable?week_offset={week_offset}")
 
 
 @main_routes.route("/complete/<int:task_index>", methods=["POST"])

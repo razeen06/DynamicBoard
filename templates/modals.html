@@ -86,17 +86,31 @@
                 <a href="/" class="close-button">×</a>
             </div>
 
+            <div class="week-nav">
+                <a href="/timetable?week_offset={{ week_offset - 1 }}" class="week-nav-button">‹ Previous week</a>
+
+                <div class="week-nav-label">
+                    <span>{{ week_range_label }}</span>
+                    {% if not is_current_week %}
+                        <a href="/timetable?week_offset=0" class="week-nav-today">This week</a>
+                    {% endif %}
+                </div>
+
+                <a href="/timetable?week_offset={{ week_offset + 1 }}" class="week-nav-button">Next week ›</a>
+            </div>
+
             <div class="calendar-grid">
                 <div class="calendar-corner" style="grid-column: 1; grid-row: 1;">
                     Time
                 </div>
 
-                {% for day in days %}
+                {% for day in week_days %}
                     <div
-                        class="calendar-day-header"
+                        class="calendar-day-header {% if day.is_today %}is-today{% endif %}"
                         style="grid-column: {{ loop.index + 1 }}; grid-row: 1;"
                     >
-                        {{ day }}
+                        <span class="day-name">{{ day.name }}</span>
+                        <span class="day-date">{{ day.label }}</span>
                     </div>
                 {% endfor %}
 
@@ -110,12 +124,12 @@
                         {{ hour }}
                     </div>
 
-                    {% for day in days %}
+                    {% for day in week_days %}
                         <div
                             class="calendar-cell"
                             style="grid-column: {{ loop.index + 1 }}; grid-row: {{ row_number }};"
                         >
-                            <a href="/timetable/add/{{ day }}/{{ hour }}" class="add-schedule-hover">Add task</a>
+                            <a href="/timetable/add/{{ day.date }}/{{ hour }}?week_offset={{ week_offset }}" class="add-schedule-hover">Add task</a>
                         </div>
                     {% endfor %}
                 {% endfor %}
@@ -136,6 +150,7 @@
                         {% endif %}
 
                         <form action="/delete_schedule_entry/{{ entry.id }}" method="POST">
+                            <input type="hidden" name="week_offset" value="{{ week_offset }}">
                             <button type="submit" class="mini-delete-button">Remove</button>
                         </form>
                     </div>
@@ -145,20 +160,21 @@
     </div>
 {% endif %}
 
-{% if add_schedule_day %}
+{% if add_schedule_date %}
     <div class="modal-backdrop">
         <div class="task-modal schedule-add-modal">
             <div class="modal-header">
                 <div>
                     <h2>Add timetable task</h2>
-                    <p>{{ add_schedule_day }} at {{ add_schedule_hour }}</p>
+                    <p>{{ add_schedule_label }} at {{ add_schedule_hour }}</p>
                 </div>
 
-                <a href="/timetable" class="close-button">×</a>
+                <a href="/timetable?week_offset={{ week_offset }}" class="close-button">×</a>
             </div>
 
             <form action="/save_schedule_entry" method="POST" class="schedule-entry-form">
-                <input type="hidden" name="day" value="{{ add_schedule_day }}">
+                <input type="hidden" name="date" value="{{ add_schedule_date }}">
+                <input type="hidden" name="week_offset" value="{{ week_offset }}">
 
                 <div class="form-field">
                     <label>Choose existing task</label>

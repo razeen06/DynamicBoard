@@ -8,30 +8,34 @@
         <a href="/timetable" class="timetable-button">View Timetable</a>
 
         <form action="/settings" method="POST" class="compact-settings-form">
-            <label>
+            <div class="control-label-wrap">
                 Theme
-                <div class="select-wrap small-select">
-                    <select name="theme" onchange="this.form.submit()">
-                        <option value="light" {% if settings.theme == "light" %}selected{% endif %}>Light</option>
-                        <option value="dark" {% if settings.theme == "dark" %}selected{% endif %}>Dark</option>
-                    </select>
+                <div class="icon-toggle" role="radiogroup" aria-label="Theme">
+                    <input type="radio" id="theme-light" name="theme" value="light" {% if settings.theme == "light" %}checked{% endif %} onchange="this.form.submit()">
+                    <label for="theme-light" title="Light mode" aria-label="Light mode">☀</label>
+
+                    <input type="radio" id="theme-dark" name="theme" value="dark" {% if settings.theme == "dark" %}checked{% endif %} onchange="this.form.submit()">
+                    <label for="theme-dark" title="Dark mode" aria-label="Dark mode">☾</label>
                 </div>
-            </label>
+            </div>
 
             <input type="hidden" name="zoom" value="{{ settings.zoom }}">
         </form>
 
         <form action="/settings" method="POST" class="compact-settings-form">
-            <label>
+            <div class="control-label-wrap">
                 Zoom
-                <div class="select-wrap small-select">
-                    <select name="zoom" onchange="this.form.submit()">
-                        <option value="small" {% if settings.zoom == "small" %}selected{% endif %}>Small</option>
-                        <option value="medium" {% if settings.zoom == "medium" %}selected{% endif %}>Medium</option>
-                        <option value="large" {% if settings.zoom == "large" %}selected{% endif %}>Large</option>
-                    </select>
+                <div class="segmented" role="radiogroup" aria-label="Zoom level">
+                    <input type="radio" id="zoom-small" name="zoom" value="small" {% if settings.zoom == "small" %}checked{% endif %} onchange="this.form.submit()">
+                    <label for="zoom-small" class="segmented-option zoom-opt-s" title="Small">S</label>
+
+                    <input type="radio" id="zoom-medium" name="zoom" value="medium" {% if settings.zoom == "medium" %}checked{% endif %} onchange="this.form.submit()">
+                    <label for="zoom-medium" class="segmented-option zoom-opt-m" title="Medium">M</label>
+
+                    <input type="radio" id="zoom-large" name="zoom" value="large" {% if settings.zoom == "large" %}checked{% endif %} onchange="this.form.submit()">
+                    <label for="zoom-large" class="segmented-option zoom-opt-l" title="Large">L</label>
                 </div>
-            </label>
+            </div>
 
             <input type="hidden" name="theme" value="{{ settings.theme }}">
         </form>
@@ -56,6 +60,11 @@
     <div class="stat-card">
         <h3>Hours Remaining</h3>
         <p>{{ total_hours_remaining }}</p>
+    </div>
+
+    <div class="date-heading">
+        <span class="date-day">{{ today_day }}</span>
+        <span class="date-full">{{ today_date }}</span>
     </div>
 </section>
 
@@ -114,34 +123,35 @@
     </div>
 
     <div class="form-field">
-        <label>Importance</label>
-        <div class="select-wrap">
-            <select name="importance" required>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-            </select>
-        </div>
+        <label for="importance-range">
+            Importance
+            <span class="range-value" id="importance-value">1</span>
+        </label>
+        <input
+            type="range"
+            class="nice-range"
+            id="importance-range"
+            name="importance"
+            min="1" max="5" step="1" value="1"
+            data-output="importance-value"
+            required
+        >
     </div>
 
     <div class="form-field">
-        <label>Difficulty</label>
-        <div class="select-wrap">
-            <select name="difficulty" required>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-            </select>
-        </div>
+        <label for="difficulty-range">
+            Difficulty
+            <span class="range-value" id="difficulty-value">1</span>
+        </label>
+        <input
+            type="range"
+            class="nice-range"
+            id="difficulty-range"
+            name="difficulty"
+            min="1" max="10" step="1" value="1"
+            data-output="difficulty-value"
+            required
+        >
     </div>
 
     <div class="form-field">
@@ -190,3 +200,18 @@
         {% endfor %}
     </div>
 </section>
+
+<script>
+    document.querySelectorAll(".nice-range").forEach(function (rangeEl) {
+        var output = document.getElementById(rangeEl.dataset.output);
+
+        var updateFill = function () {
+            var percent = ((rangeEl.value - rangeEl.min) / (rangeEl.max - rangeEl.min)) * 100;
+            rangeEl.style.setProperty("--range-fill", percent + "%");
+            if (output) output.textContent = rangeEl.value;
+        };
+
+        rangeEl.addEventListener("input", updateFill);
+        updateFill();
+    });
+</script>

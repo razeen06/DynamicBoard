@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from constants import DAYS, DEFAULT_START_HOUR, DEFAULT_END_HOUR
 from data_store import save_current_user_data
 
@@ -97,12 +97,34 @@ def time_to_hour(time_string):
         return DEFAULT_START_HOUR
 
 
-def get_timetable_hours(timetable):
+def get_week_days(week_offset=0):
+    today = datetime.today().date()
+    week_start = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+
+    week_days = []
+
+    for index, day_name in enumerate(DAYS):
+        day_date = week_start + timedelta(days=index)
+
+        week_days.append({
+            "name": day_name,
+            "date": day_date.strftime("%Y-%m-%d"),
+            "label": day_date.strftime("%d %b"),
+            "is_today": day_date == today
+        })
+
+    week_end = week_start + timedelta(days=6)
+    week_range_label = f"{week_start.strftime('%d %b')} – {week_end.strftime('%d %b %Y')}"
+
+    return week_days, week_range_label, week_offset == 0
+
+
+def get_timetable_hours(timetable, week_days):
     min_hour = DEFAULT_START_HOUR
     max_hour = DEFAULT_END_HOUR
 
-    for day in DAYS:
-        for entry in timetable.get(day, []):
+    for day in week_days:
+        for entry in timetable.get(day["date"], []):
             start_hour = time_to_hour(entry.get("start_time", "07:00"))
             end_hour = time_to_hour(entry.get("end_time", "20:00"))
 
@@ -112,7 +134,7 @@ def get_timetable_hours(timetable):
     return [f"{hour:02d}:00" for hour in range(min_hour, max_hour + 1)]
 
 
-def build_schedule_entries(timetable, timetable_hours):
+def build_schedule_entries(timetable, timetable_hours, week_days):
     hour_to_row = {
         hour: index + 2
         for index, hour in enumerate(timetable_hours)
@@ -120,8 +142,8 @@ def build_schedule_entries(timetable, timetable_hours):
 
     positioned_entries = []
 
-    for day_index, day in enumerate(DAYS):
-        for entry in timetable.get(day, []):
+    for day_index, day in enumerate(week_days):
+        for entry in timetable.get(day["date"], []):
             start_time = entry.get("start_time", "07:00")
             end_time = entry.get("end_time", start_time)
 
@@ -138,7 +160,7 @@ def build_schedule_entries(timetable, timetable_hours):
 
             positioned_entries.append({
                 **entry,
-                "day": day,
+                "date": day["date"],
                 "grid_column": day_index + 2,
                 "grid_row": row_start,
                 "grid_span": row_span
@@ -148,7 +170,7 @@ def build_schedule_entries(timetable, timetable_hours):
 
 
 def get_today_timetable_entries(timetable):
-    today_name = datetime.today().strftime("%A")
-    entries = timetable.get(today_name, [])
+    today_key = datetime.today().date().strftime("%Y-%m-%d")
+    entries = timetable.get(today_key, [])
 
     return sorted(entries, key=lambda entry: entry.get("start_time", "99:99"))

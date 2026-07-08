@@ -1,4 +1,5 @@
 from flask import session
+from datetime import datetime, timedelta
 import json
 import os
 from uuid import uuid4
@@ -7,7 +8,23 @@ from constants import DATA_FILE, DAYS
 
 
 def default_timetable():
-    return {day: [] for day in DAYS}
+    return {}
+
+
+def _is_date_key(key):
+    try:
+        datetime.strptime(key, "%Y-%m-%d")
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def _current_week_date_for_day(day_name):
+    today = datetime.today().date()
+    week_start = today - timedelta(days=today.weekday())
+    day_index = DAYS.index(day_name)
+
+    return (week_start + timedelta(days=day_index)).strftime("%Y-%m-%d")
 
 
 def default_user_data():
@@ -76,11 +93,16 @@ def normalize_timetable(timetable):
 
     new_timetable = default_timetable()
 
-    for day in DAYS:
-        day_data = timetable.get(day, [])
+    for key, day_data in timetable.items():
+        if _is_date_key(key):
+            date_key = key
+        elif key in DAYS:
+            date_key = _current_week_date_for_day(key)
+        else:
+            continue
 
         if isinstance(day_data, list):
-            cleaned_entries = []
+            cleaned_entries = new_timetable.setdefault(date_key, [])
 
             for entry in day_data:
                 if not isinstance(entry, dict):
@@ -95,10 +117,8 @@ def normalize_timetable(timetable):
                     "linked_task_title": entry.get("linked_task_title", "")
                 })
 
-            new_timetable[day] = cleaned_entries
-
         elif isinstance(day_data, dict):
-            converted = []
+            converted = new_timetable.setdefault(date_key, [])
 
             rough_times = {
                 "Morning": ("09:00", "11:00"),
@@ -119,8 +139,6 @@ def normalize_timetable(timetable):
                         "end_time": end_time,
                         "linked_task_title": ""
                     })
-
-            new_timetable[day] = converted
 
     return new_timetable
 
