@@ -16,7 +16,7 @@
 
             <section class="modal-info-grid">
                 <div><strong>Risk</strong><p>{{ selected_task.risk }}</p></div>
-                <div><strong>Priority</strong><p>{{ selected_task.priority }}</p></div>
+                <div><strong>Priority</strong><p>{{ ([[selected_task.priority, 0] | max, 100] | min) | round | int }}</p></div>
                 <div><strong>Due date</strong><p>{{ selected_task.due_date }}</p></div>
                 <div><strong>Days left</strong><p>{{ selected_task.days_left }}</p></div>
                 <div><strong>Importance</strong><p>{{ selected_task.importance }}/5</p></div>

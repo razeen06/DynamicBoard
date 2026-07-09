@@ -90,7 +90,7 @@
                 <div class="focus-card">
                     <strong>{{ task.title }}</strong>
                     <p>
-                        Priority: {{ task.priority }} |
+                        Priority: {{ ([[task.priority, 0] | max, 100] | min) | round | int }} |
                         Risk: {{ task.risk }} |
                         Due in {{ task.days_left }} day(s) |
                         Hours left: {{ task.estimated_hours }}
