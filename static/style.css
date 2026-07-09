@@ -88,27 +88,27 @@ body.dark .progress-fill {
 ========================= */
 
 body.zoom-small {
-    font-size: 14px;
+    font-size: 12px;
 }
 
 body.zoom-medium {
-    font-size: 16px;
+    font-size: 14px;
 }
 
 body.zoom-large {
-    font-size: 19px;
+    font-size: 16px;
 }
 
 body.zoom-small h1 {
-    font-size: 34px;
+    font-size: 28px;
 }
 
 body.zoom-medium h1 {
-    font-size: 42px;
+    font-size: 34px;
 }
 
 body.zoom-large h1 {
-    font-size: 52px;
+    font-size: 42px;
 }
 
 /* =========================
