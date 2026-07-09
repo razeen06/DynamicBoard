@@ -1,5 +1,7 @@
 # DynamicBoard
 
+![DynamicBoard demo](assets/demo.gif)
+
 DynamicBoard is a Flask-based productivity dashboard that helps users manage tasks, prioritise urgent work, and convert deadlines into a structured weekly timetable.
 
 The app combines task tracking, priority scoring, Google authentication, and a visual weekly planner into one focused workspace.
