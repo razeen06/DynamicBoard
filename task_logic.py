@@ -17,7 +17,7 @@ def calculate_priority(importance, difficulty, hours_left, progress, due_date):
     importance = int(importance)
     difficulty = int(difficulty)
     hours_left = float(hours_left)
-    progress = int(progress)
+    progress = int(float(progress))
 
     days_left = calculate_days_until_due(due_date)
 
@@ -156,7 +156,7 @@ def build_schedule_entries(timetable, timetable_hours, week_days):
                 continue
 
             row_start = hour_to_row[start_key]
-            row_span = max(1, end_hour - start_hour + 1)
+            row_span = max(1, end_hour - start_hour)
 
             positioned_entries.append({
                 **entry,

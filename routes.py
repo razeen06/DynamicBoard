@@ -285,7 +285,7 @@ def add_task():
     progress = request.form.get("progress")
 
     if title and due_days:
-        due_date = (datetime.today().date() + timedelta(days=int(due_days))).strftime("%Y-%m-%d")
+        due_date = (datetime.today().date() + timedelta(days=int(float(due_days)))).strftime("%Y-%m-%d")
 
         priority = calculate_priority(
             importance,
@@ -335,7 +335,7 @@ def update_progress(task_index):
         tasks[task_index]["progress"] = new_progress
         tasks[task_index]["estimated_hours"] = new_hours_left
 
-        if int(new_progress) >= 100:
+        if int(float(new_progress)) >= 100:
             tasks[task_index]["completed"] = True
 
         tasks = refresh_task_scores(tasks)
